@@ -13,7 +13,8 @@ defmodule IntellijElixir.Mixfile do
         credo: :test,
         dialyzer: :test
       ],
-      version: "2.1.0"
+      version: "2.2.0",
+      releases: releases()
     ]
   end
 
@@ -37,7 +38,6 @@ defmodule IntellijElixir.Mixfile do
     [
       {:credo, "~> 1.7.0", only: :test},
       {:dialyxir, "~> 1.4.5", only: :test, runtime: false},
-      {:distillery, "~> 2.1.1", runtime: false},
       {:ex_doc, "~> 0.38.2", only: [:dev, :test], runtime: false}
     ]
   end
@@ -74,6 +74,17 @@ defmodule IntellijElixir.Mixfile do
       },
       maintainers: [
         "Luke Imhoff"
+      ]
+    ]
+  end
+
+  def releases do
+    [
+      intellij_elixir: [
+        applications: [runtime_tools: :permanent],
+        cookie: "intellij_elixir",
+        include_erts: true,
+        strip_beams: false
       ]
     ]
   end
