@@ -17,6 +17,11 @@ defmodule IntellijElixir.Quoter do
     GenServer.start_link(__MODULE__, args, opts)
   end
 
+  @spec init(t) :: {:ok, t}
+  def init(state) do
+    {:ok, state}
+  end
+
   @spec handle_call(String.t(), GenServer.from(), t) ::
           {:reply, {:ok, Macro.t()} | {:error, {line, error, token}}, t}
   def handle_call(code, _from, state) do

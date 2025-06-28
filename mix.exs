@@ -35,10 +35,10 @@ defmodule IntellijElixir.Mixfile do
   # Type `mix help deps` for more examples and options
   defp deps do
     [
-      {:credo, "1.0.0", only: :test},
-      {:dialyxir, "~> 0.5", only: :test, runtime: false},
-      {:distillery, "~> 2.0", runtime: false},
-      {:ex_doc, "~> 0.19.0", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7.0", only: :test},
+      {:dialyxir, "~> 1.4.5", only: :test, runtime: false},
+      {:distillery, "~> 2.1.1", runtime: false},
+      {:ex_doc, "~> 0.38.2", only: [:dev, :test], runtime: false}
     ]
   end
 
