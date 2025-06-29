@@ -1,4 +1,4 @@
-name: Burrito Build
+name: Burrito Cross Build
 
 on:
   push:
@@ -16,9 +16,8 @@ permissions:
   contents: read
 
 jobs:
-  burrito-build:
+  burrito-cross-build:
     runs-on: ubuntu-22.04
-    name: 'Burrito Build on ${{ runner.os }} (${{ matrix.target }})'
     strategy:
       matrix:
         # See https://docs.github.com/en/actions/how-tos/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
@@ -33,7 +32,10 @@ jobs:
         with:
           otp-version: '28'
           elixir-version: '1.18'
-
+      - name: Set up zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.1
       - name: Cache deps
         id: cache-deps
         uses: actions/cache@v4
