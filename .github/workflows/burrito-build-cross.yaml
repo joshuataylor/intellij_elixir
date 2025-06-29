@@ -1,0 +1,81 @@
+name: Burrito Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  MIX_ENV: prod
+
+permissions:
+  contents: read
+
+jobs:
+  burrito-build:
+    runs-on: ubuntu-22.04
+    name: 'Burrito Build on ${{ runner.os }} (${{ matrix.target }})'
+    strategy:
+      matrix:
+        # See https://docs.github.com/en/actions/how-tos/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+       platform: ["darwin_amd64", "darwin_arm64", "linux_amd64", "linux_arm64", "windows_amd64", "windows_arm64"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: '28'
+          elixir-version: '1.18'
+
+      - name: Cache deps
+        id: cache-deps
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-elixir-deps
+        with:
+          path: deps
+          key: >-
+            ${{ runner.os }}-${{ matrix.target }}-mix-${{ env.cache-name }}-${{hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-mix-${{ env.cache-name }}-
+
+      - name: Cache compiled build
+        id: cache-build
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-compiled-build
+        with:
+          path: _build
+          key: >-
+            ${{ runner.os }}-${{ matrix.target }}-mix-${{ env.cache-name }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-mix-${{ env.cache-name }}-
+            ${{ runner.os }}-${{ matrix.target }}-mix-
+
+      - name: Install dependencies
+        env:
+          BURRITO_TARGET: ${{ matrix.target }}
+        run: mix deps.get
+
+      - name: Compile
+        env:
+          BURRITO_TARGET: ${{ matrix.target }}
+        run: mix compile --warnings-as-errors --force
+
+      - name: Build Burrito release
+        env:
+          BURRITO_TARGET: ${{ matrix.target }}
+        run: mix release intellij_elixir_burrito
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: intellij_elixir_burrito-${{ matrix.target }}
+          path: burrito_out/
