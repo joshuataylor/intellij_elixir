@@ -1,0 +1,97 @@
+---
+name: Burrito Build
+
+'on':
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  MIX_ENV: prod
+
+permissions:
+  contents: read
+
+jobs:
+  burrito-build:
+    runs-on: ${{ matrix.os }}
+    name: 'Burrito Build on ${{ matrix.os }} (${{ matrix.target }})'
+    strategy:
+      matrix:
+        # See https://docs.github.com/en/actions/how-tos/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+        include:
+          - os: ubuntu-24.04
+            target: linux_amd64
+          # This is AMD64
+          - os: macos-13
+            target: darwin_amd64
+          # This is ARM64
+          - os: macos-15
+            target: darwin_arm64
+          - os: windows-2025
+            target: windows_amd64
+          - os:  windows-11-arm
+            target: windows_arm
+          - os: ubuntu-24.04-arm
+            target: linux_arm
+          - os: ubuntu-24.04-arm64
+            target: linux_arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: '28'
+          elixir-version: '1.18'
+
+      - name: Cache deps
+        id: cache-deps
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-elixir-deps
+        with:
+          path: deps
+          key: >-
+            ${{ runner.os }}-mix-${{ env.cache-name }}-${{hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{ env.cache-name }}-
+
+      - name: Cache compiled build
+        id: cache-build
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-compiled-build
+        with:
+          path: _build
+          key: >-
+            ${{ runner.os }}-mix-${{ env.cache-name }}-${{
+            hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{ env.cache-name }}-
+            ${{ runner.os }}-mix-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Compile
+        run: mix compile --force
+
+      - name: Build Burrito release
+        run: >-
+          MIX_ENV=prod mix release intellij_elixir_burrito --overwrite --force
+        env:
+          BURRITO_TARGET: ${{ matrix.target }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: intellij_elixir_burrito-${{ matrix.target }}
+          path: burrito_out/
+          retention-days: 30
