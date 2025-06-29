@@ -1,0 +1,161 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  MIX_ENV: prod
+
+permissions:
+  contents: write
+
+jobs:
+  set-targets:
+    runs-on: ubuntu-22.04
+    outputs:
+      targets: ${{ steps.targets.outputs.targets }}
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Generate release tag
+        id: tag
+        run: |
+          # Generate a timestamp-based tag
+          TAG="v$(date +'%Y.%m.%d')-$(git rev-parse --short HEAD)"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          
+      - name: Set targets
+        id: targets
+        run: |
+          echo "targets=[\"darwin_amd64\", \"darwin_arm64\", \"linux_amd64\", \"linux_arm64\", \"windows_amd64\"]" >> $GITHUB_OUTPUT
+
+  build:
+    runs-on: ubuntu-22.04
+    needs: set-targets
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.set-targets.outputs.targets) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: '28'
+          elixir-version: '1.18'
+          
+      - name: Set up zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.0
+          
+      - name: Cache deps
+        id: cache-deps
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-elixir-deps
+        with:
+          path: deps
+          key: >-
+            ${{ runner.os }}-${{ matrix.target }}-mix-${{ env.cache-name }}-${{hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-mix-${{ env.cache-name }}-
+
+      - name: Cache compiled build
+        id: cache-build
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-compiled-build
+        with:
+          path: _build
+          key: >-
+            ${{ runner.os }}-${{ matrix.target }}-mix-${{ env.cache-name }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-mix-${{ env.cache-name }}-
+            ${{ runner.os }}-${{ matrix.target }}-mix-
+
+      - name: Install dependencies
+        env:
+          BURRITO_TARGET: ${{ matrix.target }}
+        run: mix deps.get
+
+      - name: Compile
+        env:
+          BURRITO_TARGET: ${{ matrix.target }}
+        run: mix compile --warnings-as-errors --force
+
+      - name: Build Burrito release
+        env:
+          BURRITO_TARGET: ${{ matrix.target }}
+        run: mix release intellij_elixir_burrito --force --overwrite
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: intellij_elixir_burrito-${{ matrix.target }}
+          path: burrito_out/
+
+  release:
+    runs-on: ubuntu-22.04
+    needs: [set-targets, build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Create release assets
+        run: |
+          mkdir -p release_assets
+          cd artifacts
+          for dir in intellij_elixir_burrito-*; do
+            target=${dir#intellij_elixir_burrito-}
+            cd "$dir"
+            if [ -f intellij_elixir_burrito ]; then
+              # Unix-like systems
+              tar -czf "../../release_assets/intellij_elixir_burrito-$target.tar.gz" intellij_elixir_burrito
+            elif [ -f intellij_elixir_burrito.exe ]; then
+              # Windows
+              zip -r "../../release_assets/intellij_elixir_burrito-$target.zip" intellij_elixir_burrito.exe
+            fi
+            cd ..
+          done
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.set-targets.outputs.tag }}
+          name: Release ${{ needs.set-targets.outputs.tag }}
+          body: |
+            Automated release of IntellijElixir burrito builds
+            
+            Built from commit: ${{ github.sha }}
+            
+            ## Assets
+            
+            - `intellij_elixir_burrito-darwin_amd64.tar.gz` - macOS Intel
+            - `intellij_elixir_burrito-darwin_arm64.tar.gz` - macOS Apple Silicon
+            - `intellij_elixir_burrito-linux_amd64.tar.gz` - Linux x86_64
+            - `intellij_elixir_burrito-linux_arm64.tar.gz` - Linux ARM64
+            - `intellij_elixir_burrito-windows_amd64.zip` - Windows x86_64
+            - `intellij_elixir_burrito-darwin_amd64` - macOS Intel
+            - `intellij_elixir_burrito-darwin_arm64` - macOS Apple Silicon
+            - `intellij_elixir_burrito-linux_amd64` - Linux x86_64
+            - `intellij_elixir_burrito-linux_arm64` - Linux ARM64
+            - `intellij_elixir_burrito-windows_amd64` - Windows x86_64
+          files: release_assets/*
+          draft: false
+          prerelease: false
