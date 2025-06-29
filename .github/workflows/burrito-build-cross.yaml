@@ -1,13 +1,26 @@
-name: Burrito Cross Build
+name: burrito-cross-build
 
 on:
-  #  push:
-  #    branches:
-  #      - main
-  #  pull_request:
-  #    branches:
-  #      - main
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
+    inputs:
+      targets:
+        description: 'Select targets to build (for manual dispatch only)'
+        required: true
+        type: choice
+        options:
+          - 'all'
+          - 'darwin_amd64'  
+          - 'darwin_arm64'
+          - 'linux_amd64'
+          - 'linux_arm64'  
+          - 'windows_amd64'
+        default: 'all'
 
 env:
   MIX_ENV: prod
@@ -16,14 +29,31 @@ permissions:
   contents: read
 
 jobs:
+  set-targets:
+    runs-on: ubuntu-22.04
+    outputs:
+      targets: ${{ steps.targets.outputs.targets }}
+    steps:
+      - name: Set targets
+        id: targets
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.targets }}" == "all" ]; then
+              echo "targets=[\"darwin_amd64\", \"darwin_arm64\", \"linux_amd64\", \"linux_arm64\", \"windows_amd64\"]" >> $GITHUB_OUTPUT
+            else
+              echo "targets=[\"${{ github.event.inputs.targets }}\"]" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "targets=[\"darwin_amd64\", \"darwin_arm64\", \"linux_amd64\", \"linux_arm64\", \"windows_amd64\"]" >> $GITHUB_OUTPUT
+          fi
+
   burrito-cross-build:
     runs-on: ubuntu-22.04
+    needs: set-targets
     strategy:
       fail-fast: false
       matrix:
-        # See https://docs.github.com/en/actions/how-tos/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
-        #        target: ["darwin_amd64", "darwin_arm64", "linux_amd64", "linux_arm64", "windows_amd64"]
-        target: [ "darwin_amd64", "darwin_arm64", "windows_amd64" ]
+        target: ${{ fromJson(needs.set-targets.outputs.targets) }}
 
     steps:
       - name: Checkout code
