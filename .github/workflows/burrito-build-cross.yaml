@@ -1,0 +1,115 @@
+name: burrito-cross-build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: 'Select targets to build (for manual dispatch only)'
+        required: true
+        type: choice
+        options:
+          - 'all'
+          - 'darwin_amd64'  
+          - 'darwin_arm64'
+          - 'linux_amd64'
+          - 'linux_arm64'  
+          - 'windows_amd64'
+        default: 'all'
+
+env:
+  MIX_ENV: prod
+
+permissions:
+  contents: read
+
+jobs:
+  set-targets:
+    runs-on: ubuntu-22.04
+    outputs:
+      targets: ${{ steps.targets.outputs.targets }}
+    steps:
+      - name: Set targets
+        id: targets
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.targets }}" == "all" ]; then
+              echo "targets=[\"darwin_amd64\", \"darwin_arm64\", \"linux_amd64\", \"linux_arm64\", \"windows_amd64\"]" >> $GITHUB_OUTPUT
+            else
+              echo "targets=[\"${{ github.event.inputs.targets }}\"]" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "targets=[\"darwin_amd64\", \"darwin_arm64\", \"linux_amd64\", \"linux_arm64\", \"windows_amd64\"]" >> $GITHUB_OUTPUT
+          fi
+
+  burrito-cross-build:
+    runs-on: ubuntu-22.04
+    needs: set-targets
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.set-targets.outputs.targets) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: '28'
+          elixir-version: '1.18'
+      - name: Set up zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.0
+      - name: Cache deps
+        id: cache-deps
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-elixir-deps
+        with:
+          path: deps
+          key: >-
+            ${{ runner.os }}-${{ matrix.target }}-mix-${{ env.cache-name }}-${{hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-mix-${{ env.cache-name }}-
+
+      - name: Cache compiled build
+        id: cache-build
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-compiled-build
+        with:
+          path: _build
+          key: >-
+            ${{ runner.os }}-${{ matrix.target }}-mix-${{ env.cache-name }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-mix-${{ env.cache-name }}-
+            ${{ runner.os }}-${{ matrix.target }}-mix-
+
+      - name: Install dependencies
+        env:
+          BURRITO_TARGET: ${{ matrix.target }}
+        run: mix deps.get
+
+      - name: Compile
+        env:
+          BURRITO_TARGET: ${{ matrix.target }}
+        run: mix compile --warnings-as-errors --force
+
+      - name: Build Burrito release
+        env:
+          BURRITO_TARGET: ${{ matrix.target }}
+        run: mix release intellij_elixir_burrito --force --overwrite
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: intellij_elixir_burrito-${{ matrix.target }}
+          path: burrito_out/

@@ -22,7 +22,9 @@ defmodule IntellijElixir.Mixfile do
   #
   # Type `mix help compile.app` for more information
   def application do
-    [applications: [:logger], mod: {IntellijElixir, []}]
+    [
+      mod: {IntellijElixir, []}
+    ]
   end
 
   # Dependencies can be Hex packages:
@@ -38,7 +40,8 @@ defmodule IntellijElixir.Mixfile do
     [
       {:credo, "~> 1.7.0", only: :test},
       {:dialyxir, "~> 1.4.5", only: :test, runtime: false},
-      {:ex_doc, "~> 0.38.2", only: [:dev, :test], runtime: false}
+      {:ex_doc, "~> 0.38.2", only: [:dev, :test], runtime: false},
+      {:burrito, "~> 1.3"}
     ]
   end
 
@@ -81,10 +84,25 @@ defmodule IntellijElixir.Mixfile do
   def releases do
     [
       intellij_elixir: [
-        applications: [runtime_tools: :permanent],
+        applications: [runtime_tools: :permanent, logger: :permanent],
         cookie: "intellij_elixir",
         include_erts: true,
         strip_beams: false
+      ],
+      intellij_elixir_burrito: [
+        applications: [runtime_tools: :permanent, logger: :permanent],
+        cookie: "intellij_elixir",
+        steps: [:assemble, &Burrito.wrap/1],
+        burrito: [
+          targets: [
+            darwin_amd64: [os: :darwin, cpu: :x86_64],
+            darwin_arm64: [os: :darwin, cpu: :aarch64],
+            linux_amd64: [os: :linux, cpu: :x86_64],
+            linux_arm64: [os: :linux, cpu: :aarch64],
+            windows_amd64: [os: :windows, cpu: :x86_64],
+            windows_arm64: [os: :windows, cpu: :aarch64]
+          ]
+        ]
       ]
     ]
   end
