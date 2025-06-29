@@ -4,6 +4,7 @@ defmodule IntellijElixir.Supervisor do
   """
 
   use Supervisor
+  require Logger
 
   @spec start_link :: {:ok, pid}
   def start_link do
@@ -19,6 +20,7 @@ defmodule IntellijElixir.Supervisor do
         start: {@quoter_module, :start_link, [[], [name: @quoter_module]]}
       }
     ]
+    Logger.info("IntellijElixir.Supervisor started")
 
     # Tuned based on intellij-elixir processing 1019 tests in 4 seconds, which is 254.75 tests per second.  Although
     # most tests are not expected to cause exits, just tuning to the test rate is less coupled than tuning to the
