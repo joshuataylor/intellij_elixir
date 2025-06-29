@@ -97,7 +97,8 @@ defmodule IntellijElixir.Mixfile do
             darwin_arm64: [os: :darwin, cpu: :aarch64],
             linux_amd64: [os: :linux, cpu: :x86_64],
             linux_arm64: [os: :linux, cpu: :aarch64],
-            windows_amd64: [os: :windows, cpu: :x86_64]
+            windows_amd64: [os: :windows, cpu: :x86_64],
+            windows_arm64: [os: :windows, cpu: :aarch64]
           ]
         ]
       ]
