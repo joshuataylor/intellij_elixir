@@ -1,11 +1,11 @@
 name: intellij_elixir Test
 'on':
- # push:
- #   branches:
- #     - main
- # pull_request:
- #   branches:
- #     - main
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 env:
@@ -19,6 +19,8 @@ jobs:
     strategy:
       matrix:
         include:
+          - elixir: '1.19'
+            otp: '28'
           - elixir: '1.18'
             otp: '28'
           - elixir: '1.17'
