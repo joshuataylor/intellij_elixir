@@ -24,9 +24,9 @@ defmodule IntellijElixir.Mixfile do
   end
 
   def cli do
-  [
-    preferred_envs: [credo: :test, dialyzer: :test]
-  ]
+    [
+      preferred_envs: [credo: :test, dialyzer: :test]
+    ]
   end
 
   # Dependencies can be Hex packages:
