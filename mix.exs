@@ -7,13 +7,9 @@ defmodule IntellijElixir.Mixfile do
       deps: deps(),
       description: description(),
       docs: docs(),
-      elixir: "~> 1.7",
+      elixir: "~> 1.9",
       package: package(),
-      preferred_cli_env: [
-        credo: :test,
-        dialyzer: :test
-      ],
-      version: "2.2.0",
+      version: "2.3.0",
       releases: releases()
     ]
   end
@@ -27,6 +23,12 @@ defmodule IntellijElixir.Mixfile do
     ]
   end
 
+  def cli do
+  [
+    preferred_envs: [credo: :test, dialyzer: :test]
+  ]
+  end
+
   # Dependencies can be Hex packages:
   #
   #   {:mydep, "~> 0.3.0"}
@@ -38,10 +40,10 @@ defmodule IntellijElixir.Mixfile do
   # Type `mix help deps` for more examples and options
   defp deps do
     [
-      {:credo, "~> 1.7.0", only: :test},
-      {:dialyxir, "~> 1.4.5", only: :test, runtime: false},
-      {:ex_doc, "~> 0.38.2", only: [:dev, :test], runtime: false},
-      {:burrito, "~> 1.3"}
+      {:credo, "~> 1.7.14", only: :test},
+      {:dialyxir, "~> 1.4.7", only: :test, runtime: false},
+      {:ex_doc, "~> 0.39.3", only: [:dev, :test], runtime: false},
+      {:burrito, "~> 1.5"}
     ]
   end
 
