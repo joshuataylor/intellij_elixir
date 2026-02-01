@@ -15,10 +15,10 @@ on:
         type: choice
         options:
           - 'all'
-          - 'darwin_amd64'  
+          - 'darwin_amd64'
           - 'darwin_arm64'
           - 'linux_amd64'
-          - 'linux_arm64'  
+          - 'linux_arm64'
           - 'windows_amd64'
         default: 'all'
 
@@ -62,12 +62,12 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          otp-version: '28'
-          elixir-version: '1.18'
+          otp-version: '28.3.0'
+          elixir-version: '1.19.5'
       - name: Set up zig
         uses: mlugg/setup-zig@v2
         with:
-          version: 0.14.0
+          version: 0.15.2
       - name: Cache deps
         id: cache-deps
         uses: actions/cache@v4
