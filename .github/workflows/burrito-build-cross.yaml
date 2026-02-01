@@ -62,7 +62,7 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          otp-version: '28.3'
+          otp-version: '28.3.0'
           elixir-version: '1.19.5'
       - name: Set up zig
         uses: mlugg/setup-zig@v2
