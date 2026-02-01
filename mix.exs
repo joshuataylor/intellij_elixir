@@ -7,7 +7,7 @@ defmodule IntellijElixir.Mixfile do
       deps: deps(),
       description: description(),
       docs: docs(),
-      elixir: "~> 1.9",
+      elixir: "~> 1.19.5",
       package: package(),
       version: "2.3.0",
       releases: releases()
